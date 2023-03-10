@@ -1,12 +1,17 @@
 const std = @import("std");
 
+var target: std.zig.CrossTarget = undefined;
+var optimize: std.builtin.Mode = undefined;
+
 fn addExample(b: *std.build.Builder, comptime name: []const u8, flags: ?[]const []const u8, sources: ?[]const []const u8, includes: ?[]const []const u8) void {
-    const mode = b.standardReleaseOptions();
-    const lib = b.addSharedLibrary(name, "src/" ++ name ++ "/" ++ name ++ ".zig", .unversioned);
-    lib.setTarget(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
-    lib.rdynamic = true;
-    lib.setBuildMode(mode);
-    lib.strip = false;
+
+    const lib = b.addSharedLibrary(.{
+        .name = name,
+        .root_source_file = .{ .path = "src/" ++ name ++ "/" ++ name ++ ".zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
     lib.install();
     lib.addIncludePath("src/" ++ name);
 
@@ -23,6 +28,12 @@ fn addExample(b: *std.build.Builder, comptime name: []const u8, flags: ?[]const 
 }
 
 pub fn build(b: *std.build.Builder) void {
+    target = b.standardTargetOptions(.{ .default_target = .{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+    } });
+    optimize = b.standardOptimizeOption(.{});
+
     b.installFile("src/index.html", "index.html");
     b.installFile("src/pcm-processor.js", "pcm-processor.js");
     b.installFile("src/wasmpcm.js", "wasmpcm.js");
@@ -38,7 +49,7 @@ pub fn build(b: *std.build.Builder) void {
 
     addExample(b, "bat", &.{"-Wall"}, &.{"src/mod/pocketmod.c"}, null);
 
-    addExample(b, "doom", &.{"-Wall", "-fno-sanitize=undefined"}, &.{
+    addExample(b, "doom", &.{ "-Wall", "-fno-sanitize=undefined" }, &.{
         "src/doom/puredoom/DOOM.c",     "src/doom/puredoom/PureDOOM.c", "src/doom/puredoom/am_map.c",
         "src/doom/puredoom/d_items.c",  "src/doom/puredoom/d_main.c",   "src/doom/puredoom/d_net.c",
         "src/doom/puredoom/doomdef.c",  "src/doom/puredoom/doomstat.c", "src/doom/puredoom/dstrings.c",
@@ -62,14 +73,14 @@ pub fn build(b: *std.build.Builder) void {
         "src/doom/puredoom/w_wad.c",    "src/doom/puredoom/wi_stuff.c", "src/doom/puredoom/z_zone.c",
     }, null);
 
-    addExample(b, "tinygl", &.{"-Wall", "-fno-sanitize=undefined"}, &.{
-        "src/tinygl/TinyGL/src/api.c", "src/tinygl/TinyGL/src/specbuf.c", "src/tinygl/TinyGL/src/zmath.c",
-        "src/tinygl/TinyGL/src/arrays.c", "src/tinygl/TinyGL/src/image_util.c", "src/tinygl/TinyGL/src/misc.c",
-        "src/tinygl/TinyGL/src/texture.c", "src/tinygl/TinyGL/src/ztriangle.c", "src/tinygl/TinyGL/src/clear.c",
-        "src/tinygl/TinyGL/src/init.c", "src/tinygl/TinyGL/src/msghandling.c", "src/tinygl/TinyGL/src/vertex.c",
-        "src/tinygl/TinyGL/src/clip.c", "src/tinygl/TinyGL/src/light.c", "src/tinygl/TinyGL/src/zbuffer.c",
-        "src/tinygl/TinyGL/src/error.c", "src/tinygl/TinyGL/src/list.c", "src/tinygl/TinyGL/src/zdither.c",
-        "src/tinygl/TinyGL/src/get.c", "src/tinygl/TinyGL/src/matrix.c", "src/tinygl/TinyGL/src/select.c",
+    addExample(b, "tinygl", &.{ "-Wall", "-fno-sanitize=undefined" }, &.{
+        "src/tinygl/TinyGL/src/api.c",     "src/tinygl/TinyGL/src/specbuf.c",     "src/tinygl/TinyGL/src/zmath.c",
+        "src/tinygl/TinyGL/src/arrays.c",  "src/tinygl/TinyGL/src/image_util.c",  "src/tinygl/TinyGL/src/misc.c",
+        "src/tinygl/TinyGL/src/texture.c", "src/tinygl/TinyGL/src/ztriangle.c",   "src/tinygl/TinyGL/src/clear.c",
+        "src/tinygl/TinyGL/src/init.c",    "src/tinygl/TinyGL/src/msghandling.c", "src/tinygl/TinyGL/src/vertex.c",
+        "src/tinygl/TinyGL/src/clip.c",    "src/tinygl/TinyGL/src/light.c",       "src/tinygl/TinyGL/src/zbuffer.c",
+        "src/tinygl/TinyGL/src/error.c",   "src/tinygl/TinyGL/src/list.c",        "src/tinygl/TinyGL/src/zdither.c",
+        "src/tinygl/TinyGL/src/get.c",     "src/tinygl/TinyGL/src/matrix.c",      "src/tinygl/TinyGL/src/select.c",
         "src/tinygl/TinyGL/src/zline.c",
     }, &.{
         "src/tinygl/TinyGL/include", "src/tinygl/TinyGL/src",
