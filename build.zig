@@ -3,8 +3,7 @@ const std = @import("std");
 var target: std.zig.CrossTarget = undefined;
 var optimize: std.builtin.Mode = undefined;
 
-fn addExample(b: *std.build.Builder, comptime name: []const u8, flags: ?[]const []const u8, sources: ?[]const []const u8, includes: ?[]const []const u8) void {
-
+fn addExample(b: *std.build.Builder, comptime name: []const u8, flags: ?[]const []const u8, sources: ?[]const []const u8, includes: ?[]const []const u8, exports: ?[]const []const u8) void {
     const lib = b.addSharedLibrary(.{
         .name = name,
         .root_source_file = .{ .path = "src/" ++ name ++ "/" ++ name ++ ".zig" },
@@ -14,6 +13,7 @@ fn addExample(b: *std.build.Builder, comptime name: []const u8, flags: ?[]const 
 
     lib.install();
     lib.addIncludePath("src/" ++ name);
+    //lib.export_symbol_names = {"getLeftBufPtr"};
 
     if (includes != null) {
         for (includes.?) |inc| {
@@ -22,6 +22,10 @@ fn addExample(b: *std.build.Builder, comptime name: []const u8, flags: ?[]const 
     }
     if (flags != null and sources != null) {
         lib.addCSourceFiles(sources.?, flags.?);
+    }
+
+    if (exports != null) {
+        lib.export_symbol_names = exports.?;
     }
 
     b.installFile("src/" ++ name ++ "/" ++ name ++ ".html", name ++ ".html");
@@ -41,13 +45,28 @@ pub fn build(b: *std.build.Builder) void {
     b.installFile("src/coi-serviceworker.js", "coi-serviceworker.js");
     b.installFile("src/unmute.js", "unmute.js");
 
-    addExample(b, "sinetone", null, null, null);
+    addExample(b, "sinetone", null, null, null, &.{
+        "setSampleRate", "getLeftBufPtr", "getRightBufPtr",
+        "setLeftFreq",   "setRightFreq",  "renderSoundQuantum",
+    });
 
-    addExample(b, "synth", null, null, null);
+    addExample(b, "synth", null, null, null, &.{
+        "noteOn",             "noteOff",
+        "getLeftBufPtr",      "getRightBufPtr",
+        "renderSoundQuantum",
+    });
 
-    addExample(b, "mod", &.{"-Wall"}, &.{"src/mod/pocketmod.c"}, null);
+    addExample(b, "mod", &.{"-Wall"}, &.{"src/mod/pocketmod.c"}, null, &.{
+        "setSampleRate", "getLeftBufPtr", "getRightBufPtr", "renderSoundQuantum",
+    });
 
-    addExample(b, "bat", &.{"-Wall"}, &.{"src/mod/pocketmod.c"}, null);
+    addExample(b, "bat", &.{"-Wall"}, &.{"src/mod/pocketmod.c"}, null, &.{
+        "keyevent",       "getGfxBufPtr",
+        "setSampleRate",  "getLeftBufPtr",
+        "getRightBufPtr", "renderSoundQuantum",
+        "init",           "update",
+        "renderGfx",
+    });
 
     addExample(b, "doom", &.{ "-Wall", "-fno-sanitize=undefined" }, &.{
         "src/doom/puredoom/DOOM.c",     "src/doom/puredoom/PureDOOM.c", "src/doom/puredoom/am_map.c",
@@ -71,7 +90,14 @@ pub fn build(b: *std.build.Builder) void {
         "src/doom/puredoom/s_sound.c",  "src/doom/puredoom/sounds.c",   "src/doom/puredoom/st_lib.c",
         "src/doom/puredoom/st_stuff.c", "src/doom/puredoom/tables.c",   "src/doom/puredoom/v_video.c",
         "src/doom/puredoom/w_wad.c",    "src/doom/puredoom/wi_stuff.c", "src/doom/puredoom/z_zone.c",
-    }, null);
+    }, null, &.{
+        "doom_print_impl", "doom_gettime_impl",  "doom_malloc_impl", "doom_free_impl",
+        "doom_open_impl",  "doom_close_impl",    "doom_read_impl",   "doom_write_impl",
+        "doom_seek_impl",  "doom_tell_impl",     "doom_eof_impl",    "doom_exit_impl",
+        "keyevent",        "getGfxBufPtr",       "setSampleRate",    "getLeftBufPtr",
+        "getRightBufPtr",  "renderSoundQuantum", "init",             "update",
+        "renderGfx",
+    });
 
     addExample(b, "tinygl", &.{ "-Wall", "-fno-sanitize=undefined" }, &.{
         "src/tinygl/TinyGL/src/api.c",     "src/tinygl/TinyGL/src/specbuf.c",     "src/tinygl/TinyGL/src/zmath.c",
@@ -84,7 +110,12 @@ pub fn build(b: *std.build.Builder) void {
         "src/tinygl/TinyGL/src/zline.c",
     }, &.{
         "src/tinygl/TinyGL/include", "src/tinygl/TinyGL/src",
-    });
+    }, &.{ "gl_malloc", "gl_zalloc", "gl_free", "zsin", "zcos", "zsqrt", "zpow", "zfabs", "keyevent", "getGfxBufPtr", "setSampleRate", "getLeftBufPtr", "getRightBufPtr", "renderSoundQuantum", "init", "update", "renderGfx" });
 
-    addExample(b, "mandelbrot", null, null, null);
+    addExample(b, "mandelbrot", null, null, null, &.{
+        "mouseMoveEvent",     "mouseClickEvent", "getGfxBufPtr",
+        "setSampleRate",      "getLeftBufPtr",   "getRightBufPtr",
+        "renderSoundQuantum", "init",            "update",
+        "renderGfx",
+    });
 }
